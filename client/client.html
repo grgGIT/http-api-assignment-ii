@@ -5,10 +5,80 @@
   <link rel="stylesheet" type="text/css" href="/style.css">
   
   <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const nameForm = document.getElementById('nameForm');
+      const userForm = document.getElementById('userForm');
+      const contentSection = document.getElementById('content');
 
+      // Handle adding a user
+      nameForm.addEventListener('submit', async (event) => {
+        event.preventDefault(); // Prevent default form submission
+
+        const formData = new FormData(nameForm);
+        const data = Object.fromEntries(formData);
+
+        const response = await fetch(nameForm.action, {
+          method: nameForm.method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        const jsonResponse = await response.json();
+        
+        if (response.status === 201) {
+          contentSection.innerHTML = `<pre>{ "id": "created", "message": "Created successfully" }</pre>`;
+        } else if (response.status === 204) {
+          contentSection.innerHTML = `<pre>Updated (No Content)</pre>`;
+        } else if (response.status === 400) {
+          contentSection.innerHTML = `<pre>Bad Request: ${jsonResponse.message}</pre>`;
+          console.error(`400 Error: ${jsonResponse.id} - ${jsonResponse.message}`);
+          console.log(`Id: ${jsonResponse.id}, message: ${jsonResponse.message}`);
+        }
+      });
+
+      // Handle getting users
+      userForm.addEventListener('submit', async (event) => {
+        event.preventDefault(); // Prevent default form submission
+
+        const selectedUrl = document.getElementById('urlField').value;
+        const selectedMethod = document.getElementById('methodSelect').value.toUpperCase();
+
+        try {
+        const response = await fetch(selectedUrl, {
+            method: selectedMethod,
+        });
+
+        // Clear the content section first
+        contentSection.innerHTML = '';
+
+        if (response.ok) {
+            if (selectedMethod === 'HEAD') {
+                // If it's a HEAD request, we just print the headers
+                const headers = [...response.headers.entries()].map(([key, value]) => `${key}: ${value}`).join('<br>');
+                contentSection.innerHTML = `<pre>${headers}</pre>`;
+            } else {
+                const jsonResponse = await response.json();
+                contentSection.innerHTML = `<pre>${JSON.stringify(jsonResponse, null, 2)}</pre>`;
+            }
+        } else {
+            // Handle non-2xx responses
+            const jsonResponse = await response.json();
+            contentSection.innerHTML = `<pre>${jsonResponse.message}</pre>`;
+            console.error(`Error ${response.status}: ${jsonResponse.id} - ${jsonResponse.message}`);
+            console.log(`Id: ${jsonResponse.id}, message: ${jsonResponse.message}`);
+        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        contentSection.innerHTML = '<pre>Fetch error: Unable to complete the request.</pre>';
+    }
+      });
+    });
   </script>
 </head>
 <body>
+  
   <section id="top">
     <h3>POST Status Code Tests</h3>
     <form id="nameForm" action="/addUser" method="post">
@@ -32,5 +102,6 @@
   </section>
   <section id="content">
   </section>
+
 </body>
 </html>
